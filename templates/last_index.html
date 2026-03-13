@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0805;
+            --surface: #110e09;
+            --card: #1a1510;
+            --gold: #c9a84c;
+            --gold-light: #e8cc7a;
+            --red: #8b1a1a;
+            --red-bright: #c0392b;
+            --text: #e8dcc8;
+            --muted: #7a6e5f;
+            --border: #2e2519;
+            --table-felt: #0d1a0f;
+            --table-border: #1e3320;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Crimson Pro', serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background:
+                    radial-gradient(ellipse at 20% 50%, rgba(139,26,26,0.08) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 50%, rgba(201,168,76,0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* ── Floating BG cards ── */
+        .bg-cards { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+        .bg-card {
+            position: absolute;
+            width: 60px; height: 84px;
+            border: 1px solid rgba(201,168,76,0.08);
+            border-radius: 6px;
+            background: rgba(201,168,76,0.02);
+            animation: floatCard linear infinite;
+            opacity: 0;
+        }
+        @keyframes floatCard {
+            0%   { transform: translateY(110vh) rotate(var(--rot)); opacity: 0; }
+            10%  { opacity: 0.4; }
+            90%  { opacity: 0.2; }
+            100% { transform: translateY(-20vh) rotate(calc(var(--rot) + 30deg)); opacity: 0; }
+        }
+
+        /* ── Screen management ── */
+        .screen { display: none; width: 100%; max-width: 480px; }
+        .screen.active { display: block; animation: fadeIn 0.5s ease; }
+
+        /* game screen breaks out of the 480px box */
+        #screen-game {
+            max-width: none;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            inset: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Panel ── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            padding: 48px 40px;
+            position: relative;
+            box-shadow: 0 0 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,168,76,0.08);
+        }
+        .panel::before, .panel::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            border-color: var(--gold);
+            border-style: solid;
+            opacity: 0.4;
+        }
+        .panel::before { top: 12px; left: 12px; border-width: 1px 0 0 1px; }
+        .panel::after  { bottom: 12px; right: 12px; border-width: 0 1px 1px 0; }
+
+        h1 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 28px;
+            color: var(--gold);
+            text-align: center;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+            text-shadow: 0 0 30px rgba(201,168,76,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            font-style: italic;
+            font-size: 14px;
+            margin-bottom: 36px;
+            letter-spacing: 0.1em;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text);
+            font-family: 'Crimson Pro', serif;
+            font-size: 18px;
+            padding: 12px 16px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+        input[type="text"]:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+        }
+        input[type="text"]::placeholder { color: var(--muted); font-style: italic; }
+
+        .btn {
+            display: block; width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 12px;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .btn:hover  { background: var(--gold); color: var(--bg); box-shadow: 0 0 20px rgba(201,168,76,0.2); }
+        .btn:active { transform: scale(0.98); }
+        .btn.secondary { border-color: var(--border); color: var(--muted); }
+        .btn.secondary:hover { border-color: var(--muted); background: transparent; color: var(--text); box-shadow: none; }
+        .btn.danger { border-color: var(--red); color: #e07070; }
+        .btn.danger:hover { background: var(--red); color: var(--text); box-shadow: 0 0 20px rgba(139,26,26,0.3); }
+        .btn.start {
+            border-color: var(--gold-light);
+            color: var(--gold-light);
+            font-size: 14px; padding: 18px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(201,168,76,0.1); }
+            50%       { box-shadow: 0 0 40px rgba(201,168,76,0.25); }
+        }
+        .btn.start:hover { background: var(--gold-light); color: var(--bg); }
+
+        .divider {
+            display: flex; align-items: center; gap: 16px;
+            margin: 24px 0;
+            color: var(--muted); font-size: 11px;
+            letter-spacing: 0.2em; text-transform: uppercase;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        /* ── Status bar ── */
+        #status-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 10px 20px; font-size: 12px; letter-spacing: 0.08em;
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(10,8,5,0.9);
+            border-top: 1px solid var(--border);
+            z-index: 300;
+        }
+        #ws-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--muted); transition: background 0.3s; flex-shrink: 0;
+        }
+        #ws-dot.connected { background: #4caf82; box-shadow: 0 0 6px rgba(76,175,130,0.5); }
+        #ws-dot.error     { background: var(--red-bright); }
+        #status-msg { color: var(--muted); }
+
+        /* ── Room screen bits ── */
+        .player-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 2px; padding: 8px 14px;
+            margin-bottom: 24px; font-size: 13px; color: var(--muted);
+        }
+        .player-badge strong { color: var(--gold); font-family: 'Cinzel Decorative', serif; font-size: 11px; }
+
+        .roommates {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 2px; padding: 16px; margin: 16px 0; min-height: 80px;
+        }
+        .roommates-title {
+            font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 12px;
+        }
+        .roommate-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 15px;
+        }
+        .roommate-row:last-child { border-bottom: none; }
+        .roommate-crown { color: var(--gold); font-size: 12px; }
+        .card-count {
+            margin-left: auto; font-size: 11px; color: var(--muted);
+            background: rgba(201,168,76,0.07); border: 1px solid var(--border);
+            border-radius: 2px; padding: 2px 8px; letter-spacing: 0.05em;
+        }
+        .card-count.few { color: #e07070; border-color: rgba(192,57,43,0.3); }
+
+        #hand-section { display: none; margin-top: 16px; }
+        .hand-title {
+            font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 10px;
+        }
+        #hand-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+        .hand-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 4px; padding: 6px 10px; font-size: 13px;
+            font-family: 'Crimson Pro', serif; color: var(--text);
+            letter-spacing: 0.03em;
+            transition: border-color 0.15s, transform 0.15s; cursor: default;
+        }
+        .hand-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+
+        .game-status-badge {
+            text-align: center; padding: 8px; margin: 8px 0;
+            font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+            color: #4caf82; background: rgba(76,175,130,0.08);
+            border: 1px solid rgba(76,175,130,0.2); border-radius: 2px;
+        }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; top: 20px; right: 20px;
+            padding: 14px 20px; border-radius: 2px; font-size: 14px;
+            max-width: 320px; z-index: 400;
+            transform: translateX(150%); transition: transform 0.3s; line-height: 1.5;
+        }
+        #toast.show  { transform: translateX(0); }
+        #toast.error { background: var(--red); border: 1px solid var(--red-bright); color: var(--text); }
+        #toast.info  { background: #1a1208; border: 1px solid var(--gold); color: var(--gold-light); }
+
+        /* ════════════════════════════════════════
+           GAME SCREEN  –  full 2D table
+        ════════════════════════════════════════ */
+        #screen-game {
+            background: #080c08;
+            display: none;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: space-between;
+            padding: 0 0 40px 0; /* bottom = status bar height */
+        }
+        #screen-game.active {
+            display: flex;
+            animation: fadeIn 0.6s ease;
+        }
+
+        /* felt table oval in the middle */
+        #game-table {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(60vw, 500px);
+            height: min(30vh, 220px);
+            background: radial-gradient(ellipse at center, #112014 0%, #0b1610 60%, #07100d 100%);
+            border: 2px solid #1e3a24;
+            border-radius: 50%;
+            box-shadow:
+                    0 0 60px rgba(0,0,0,0.8),
+                    inset 0 0 40px rgba(0,0,0,0.5),
+                    0 0 0 8px #080c08,
+                    0 0 0 9px #152018;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1;
+        }
+
+        #current-card-game {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: clamp(22px, 3vw, 36px);
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(201,168,76,0.5);
+            letter-spacing: 0.05em;
+        }
+        #turn-label {
+            font-size: clamp(11px, 1.2vw, 14px);
+            color: var(--muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        #turn-name {
+            font-size: clamp(13px, 1.5vw, 16px);
+            color: var(--gold-light);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Opponents row (top) ── */
+        #opponents-row {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: clamp(8px, 2vw, 28px);
+            padding: 20px 40px 0;
+            flex-wrap: nowrap;
+            overflow: visible;
+        }
+
+        .opponent {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .opponent-name {
+            font-size: clamp(10px, 1.1vw, 13px);
+            color: var(--text);
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+        .opponent-name.is-turn {
+            color: var(--gold);
+            text-shadow: 0 0 12px rgba(201,168,76,0.4);
+        }
+
+        /* opponent's face-down card fan */
+        .opp-hand {
+            position: relative;
+            height: clamp(60px, 8vh, 90px);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .opp-card {
+            position: absolute;
+            width: clamp(28px, 3vw, 42px);
+            height: clamp(42px, 5.5vh, 62px);
+            background: linear-gradient(135deg, #1e2d1f 0%, #162018 50%, #0f1a10 100%);
+            border: 1px solid #2a4030;
+            border-radius: 4px;
+            box-shadow: 1px 2px 6px rgba(0,0,0,0.5);
+            transform-origin: bottom center;
+        }
+        /* little UNO diamond on face-down cards */
+        .opp-card::after {
+            content: '◆';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(8px, 1vw, 12px);
+            color: rgba(201,168,76,0.25);
+        }
+
+        /* ── Player area (bottom) ── */
+        #player-area {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 0 20px;
+        }
+
+        #player-name-game {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: clamp(11px, 1.3vw, 15px);
+            color: var(--gold);
+            letter-spacing: 0.1em;
+        }
+
+        #player-hand-game {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            flex-wrap: nowrap;
+            gap: 0;
+            position: relative;
+            height: clamp(70px, 10vh, 110px);
+            width: 100%;
+            overflow: visible;
+        }
+
+        .my-card {
+            position: absolute;
+            width: clamp(38px, 4vw, 58px);
+            height: clamp(56px, 7.5vh, 86px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(9px, 1vw, 13px);
+            font-family: 'Crimson Pro', serif;
+            color: var(--text);
+            cursor: default;
+            box-shadow: 2px 3px 10px rgba(0,0,0,0.6);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            transform-origin: bottom center;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+            padding: 2px;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .my-card:hover {
+            border-color: var(--gold);
+            box-shadow: 2px 3px 20px rgba(201,168,76,0.25);
+            z-index: 10 !important;
+        }
+
+        /* spacer to center the table in remaining vertical space */
+        #table-spacer {
+            flex: 1;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-cards" id="bgCards"></div>
+
+<!-- ── Entry ── -->
+<div id="screen-ws" class="screen active">
+    <div class="panel">
+        <h1>UNO</h1>
+        <p class="subtitle">— The Table Awaits —</p>
+        <label>Your Name</label>
+        <input type="text" id="name-input" placeholder="Enter your name..." maxlength="24">
+        <button class="btn" onclick="enterTable()">Enter the Table</button>
+    </div>
+</div>
+
+<!-- ── Lobby ── -->
+<div id="screen-lobby" class="screen">
+    <div class="panel">
+        <h1>UNO</h1>
+        <p class="subtitle">— Choose Your Path —</p>
+        <div class="player-badge">
+            Playing as <strong id="lobby-name">—</strong>
+        </div>
+        <button class="btn" onclick="createRoom()">⚔ Create New Room</button>
+        <div class="divider">or</div>
+        <label>Room ID</label>
+        <input type="text" id="join-room-input" placeholder="Enter room ID...">
+        <button class="btn secondary" onclick="joinRoom()">Join Existing Room</button>
+    </div>
+</div>
+
+<!-- ── Room / Waiting ── -->
+<div id="screen-room" class="screen">
+    <div class="panel">
+        <div class="player-badge">
+            <span id="room-player-name">—</span>
+            <span>·</span>
+            <span id="room-id-display" style="color:var(--gold); font-size:12px;">—</span>
+        </div>
+
+        <div class="roommates">
+            <div class="roommates-title">Players in Room</div>
+            <div id="roommates-list">
+                <span style="color:var(--muted); font-style:italic; font-size:14px;">Waiting for players...</span>
+            </div>
+        </div>
+
+        <div id="hand-section">
+            <div class="hand-title">Your Hand</div>
+            <div id="hand-cards"></div>
+        </div>
+
+        <div id="game-info" style="display:none;">
+            <div class="game-status-badge">⚔ Game In Progress</div>
+        </div>
+
+        <div id="start-btn-container" style="display:none; margin-top:8px;">
+            <button class="btn start" onclick="startGame()">⚔ Start Game</button>
+        </div>
+
+        <div style="margin-top:8px;">
+            <button class="btn danger" onclick="leaveRoom()">Leave Room</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     GAME SCREEN
+════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+    <!-- Opponents spread across the top -->
+    <div id="opponents-row"></div>
+
+    <!-- Center: felt table with current card -->
+    <div id="table-spacer">
+        <div id="game-table">
+            <div id="current-card-game">—</div>
+            <div id="turn-label">current turn</div>
+            <div id="turn-name">—</div>
+        </div>
+    </div>
+
+    <!-- Player hand at bottom -->
+    <div id="player-area">
+        <div id="player-name-game">—</div>
+        <div id="player-hand-game"></div>
+    </div>
+
+</div>
+
+<!-- Status Bar -->
+<div id="status-bar">
+    <div id="ws-dot"></div>
+    <span id="status-msg">Not connected</span>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+    const WS_URL = 'ws://localhost:8000';
+
+    let ws         = null;
+    let playerId   = null;
+    let playerName = null;
+    let roomId     = null;
+    let isAdmin    = false;
+    let pollInterval = null;
+    let inGame     = false;
+
+    // ── BG decoration ──────────────────────────────────
+    (function() {
+        const c = document.getElementById('bgCards');
+        for (let i = 0; i < 8; i++) {
+            const el = document.createElement('div');
+            el.className = 'bg-card';
+            el.style.cssText = `
+                left: ${Math.random()*100}%;
+                --rot: ${(Math.random()-0.5)*40}deg;
+                animation-duration: ${10+Math.random()*15}s;
+                animation-delay: ${Math.random()*15}s;
+            `;
+            c.appendChild(el);
+        }
+    })();
+
+    // ── Toast ───────────────────────────────────────────
+    let toastTimer = null;
+    function showToast(msg, type='error', duration=4000) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = `show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.className = ''; }, duration);
+    }
+    const showError = msg => showToast(msg, 'error', 3500);
+    const showInfo  = msg => showToast(msg, 'info',  6000);
+
+    // ── Screen ──────────────────────────────────────────
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + id).classList.add('active');
+    }
+
+    function setStatus(msg, connected=false, error=false) {
+        document.getElementById('status-msg').textContent = msg;
+        document.getElementById('ws-dot').className =
+            connected ? 'connected' : (error ? 'error' : '');
+    }
+
+    // ── Admin-left ──────────────────────────────────────
+    function handleAdminLeft(raw) {
+        const colonIdx = raw.lastIndexOf(':');
+        const adminName = colonIdx !== -1 ? raw.slice(colonIdx + 1).trim() : 'the admin';
+        stopPolling();
+        inGame = false;
+        roomId = null; isAdmin = false;
+        showScreen('lobby');
+        showInfo(`👑 Admin "${adminName}" left — the room has closed.`);
+    }
+
+    // ── WebSocket ───────────────────────────────────────
+    function wsConnect(url) {
+        return new Promise((resolve, reject) => {
+            ws = new WebSocket(url);
+            ws.onopen  = () => { setStatus('Connected', true); resolve(); };
+            ws.onerror = () => { setStatus('Connection error', false, true); reject(new Error('WS error')); };
+            ws.onclose = () => { setStatus('Disconnected', false); };
+        });
+    }
+
+    function wsSend(message) {
+        return new Promise((resolve, reject) => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                reject(new Error('Not connected'));
+                return;
+            }
+            const handler = (event) => {
+                const raw = event.data;
+                if (/^i,Admin left/i.test(raw)) {
+                    handleAdminLeft(raw);
+                    return;
+                }
+                ws.removeEventListener('message', handler);
+                resolve(raw);
+            };
+            ws.addEventListener('message', handler);
+            ws.send(message);
+        });
+    }
+
+    function parseResponse(raw) {
+        const parts = raw.split(',');
+        return { status: parts[0], parts: parts.slice(1) };
+    }
+
+    // ── Actions ─────────────────────────────────────────
+    async function enterTable() {
+        const nameVal = document.getElementById('name-input').value.trim();
+        if (!nameVal) { showError('Please enter your name'); return; }
+
+        setStatus('Connecting...');
+        try { await wsConnect(WS_URL); }
+        catch(e) { showError('Could not connect to server'); return; }
+
+        setStatus('Creating player...');
+        try {
+            const raw = await wsSend(`create_player,${nameVal}`);
+            const resp = parseResponse(raw);
+            if (resp.status === 'a') {
+                playerId   = resp.parts[0];
+                playerName = nameVal;
+                document.getElementById('lobby-name').textContent = playerName;
+                setStatus(`Connected as ${playerName}`);
+                showScreen('lobby');
+            } else {
+                showError(resp.parts[0] || 'Failed to create player');
+                setStatus('Error', false, true);
+            }
+        } catch(e) { showError('No response from server'); }
+    }
+
+    async function createRoom() {
+        try {
+            const raw = await wsSend(`create_room,${playerId}`);
+            const resp = parseResponse(raw);
+            if (resp.status === 'a') {
+                roomId = resp.parts[0];
+                isAdmin = true;
+                enterRoomScreen();
+                startPolling();
+            } else {
+                showError(resp.parts[0] || 'Failed to create room');
+            }
+        } catch(e) { showError('Failed to create room'); }
+    }
+
+    async function joinRoom() {
+        const rid = document.getElementById('join-room-input').value.trim();
+        if (!rid) { showError('Enter a room ID'); return; }
+        try {
+            const raw = await wsSend(`join_room,${playerId},${rid}`);
+            const resp = parseResponse(raw);
+            if (resp.status === 'a') {
+                roomId  = resp.parts[0];
+                isAdmin = false;
+                enterRoomScreen();
+                startPolling();
+            } else {
+                showError(resp.parts[0] || 'Failed to join room');
+            }
+        } catch(e) { showError('Failed to join room'); }
+    }
+
+    async function leaveRoom() {
+        stopPolling();
+        try { await wsSend(`leave_room,${playerId}`); } catch(e) {}
+        roomId = null; isAdmin = false; inGame = false;
+        showScreen('lobby');
+    }
+
+    async function startGame() {
+        try {
+            const raw = await wsSend(`start_game,${playerId}`);
+            const resp = parseResponse(raw);
+            if (resp.status !== 'a') showError(resp.parts[0] || 'Could not start game');
+        } catch(e) { showError('Could not start game'); }
+    }
+
+    // ── Room screen ──────────────────────────────────────
+    function enterRoomScreen() {
+        document.getElementById('room-player-name').textContent = playerName;
+        document.getElementById('room-id-display').textContent  = `Room: ${roomId}`;
+        document.getElementById('start-btn-container').style.display = isAdmin ? 'block' : 'none';
+        showScreen('room');
+    }
+
+    function startPolling() { pollRoomInfo(); pollInterval = setInterval(pollRoomInfo, 2000); }
+    function stopPolling()  { clearInterval(pollInterval); pollInterval = null; }
+
+    // ── Parse roommates string ───────────────────────────
+    // Returns { players: [{name, cards[]}], myCards: [] }
+    // Input: "alex#3|mikel#4|anready#0.0.1,0.0.2|david#7"
+    // "you" means current player — cards are dot-separated values
+    // others — cards is a NUMBER (face-down count)
+    function parseRoommates(str) {
+        const entries = (str || '').split('|').filter(Boolean);
+        const players = [];
+        let myCards   = [];
+        let myName    = null;
+
+        for (const entry of entries) {
+            const hi   = entry.indexOf('#');
+            const name = hi !== -1 ? entry.slice(0, hi) : entry;
+            const rest = hi !== -1 ? entry.slice(hi + 1) : '';
+
+            if (rest.length === 0 || rest.length > 1) {
+                myCards = rest ? rest.split('.').filter(Boolean) : [];
+                myName  = playerName;
+                players.push({ name: playerName, isMe: true, cards: myCards });
+            } else {
+                const count = parseInt(rest) || 0;
+                // build array of count placeholder strings for rendering
+                players.push({ name, isMe: false, cards: Array(count).fill(null) });
+            }
+        }
+        return { players, myCards };
+    }
+
+    // ── Game screen renderer ─────────────────────────────
+    function renderGameScreen(players, currentCard, turnPlayerNumber) {
+        // Split into me vs opponents
+        const me        = players.find(p => p.isMe);
+        const meIndex   = players.findIndex(p => p.isMe);
+        let opponents = [];
+
+        if (meIndex > 0 && meIndex < players.length - 1) {
+            for (let i = meIndex + 1; i < players.length; i++) {
+                opponents.push(players[i]);
+            }
+            for (let i = 0; i < meIndex; i++) {
+                opponents.push(players[i]);
+            }
+        } else {
+            opponents = players.filter(p => !p.isMe);
+        }
+
+        // player_number_to_move is 1-based index into the original sequence
+        // We mark whoever matches by index
+        const turnIdx   = (parseInt(turnPlayerNumber) || 1) - 1;
+        const turnName  = players[turnIdx] ? players[turnIdx].name : null;
+
+        // ── Current card + turn ──
+        document.getElementById('current-card-game').textContent =
+            (currentCard && currentCard !== 'None') ? currentCard : '—';
+        document.getElementById('turn-name').textContent = turnName || '—';
+
+        // ── My name ──
+        document.getElementById('player-name-game').textContent = playerName || '—';
+
+        // ── Opponents ──
+        const row = document.getElementById('opponents-row');
+        row.innerHTML = '';
+        for (const opp of opponents) {
+            const isTurn = opp.name === turnName;
+            const div    = document.createElement('div');
+            div.className = 'opponent';
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'opponent-name' + (isTurn ? ' is-turn' : '');
+            nameEl.textContent = opp.name + (isTurn ? ' ⬡' : '');
+
+            const handEl = buildOppHand(opp.cards.length);
+
+            div.appendChild(nameEl);
+            div.appendChild(handEl);
+            row.appendChild(div);
+        }
+
+        // ── My hand ──
+        const handEl = document.getElementById('player-hand-game');
+        handEl.innerHTML = '';
+        const myCards = me ? me.cards : [];
+        layoutMyHand(handEl, myCards);
+    }
+
+    // Build a fanned pile of face-down cards for an opponent
+    function buildOppHand(count) {
+        const wrap = document.createElement('div');
+        wrap.className = 'opp-hand';
+
+        const n        = Math.max(1, count);
+        const maxAngle = Math.min(40, n * 6);   // spread angle total
+        const overlap  = Math.min(22, 180 / n); // px between cards
+
+        for (let i = 0; i < n; i++) {
+            const card = document.createElement('div');
+            card.className = 'opp-card';
+            const t = n === 1 ? 0 : (i / (n - 1) - 0.5); // -0.5 … +0.5
+            const angle  = t * maxAngle;
+            const xOff   = t * overlap * (n - 1) * 0.5;
+            card.style.transform = `translateX(${xOff}px) rotate(${angle}deg)`;
+            card.style.zIndex    = i;
+            wrap.appendChild(card);
+        }
+
+        // set wrap width so cards don't overflow parent badly
+        const totalW = Math.min(n * 8 + 60, 160);
+        wrap.style.width = totalW + 'px';
+
+        return wrap;
+    }
+
+    // Lay out player's own cards in a fan across the bottom
+    function layoutMyHand(container, cards) {
+        const n = cards.length;
+        if (n === 0) {
+            container.innerHTML = '<span style="color:var(--muted);font-style:italic;font-size:13px;">No cards</span>';
+            return;
+        }
+
+        const containerW = container.offsetWidth || window.innerWidth;
+        const cardW      = Math.min(58, Math.max(34, (containerW * 0.7) / n));
+        const cardH      = cardW * 1.5;
+
+        // Total spread: overlap cards so they fit
+        const maxSpread  = containerW * 0.88;
+        const step       = Math.min(cardW + 4, maxSpread / Math.max(n - 1, 1));
+        const totalSpan  = step * (n - 1);
+        const startX     = (containerW - totalSpan) / 2 - cardW / 2;
+
+        container.style.height = (cardH + 20) + 'px';
+
+        const maxAng = Math.min(20, n * 2.5);
+
+        for (let i = 0; i < n; i++) {
+            const card = document.createElement('div');
+            card.className = 'my-card';
+            card.textContent = cards[i] || '';
+
+            const t   = n === 1 ? 0 : (i / (n - 1) - 0.5);
+            const ang = t * maxAng;
+            const yOff = Math.abs(t) * 12; // arc: edges slightly lower
+
+            card.style.width    = cardW + 'px';
+            card.style.height   = cardH + 'px';
+            card.style.left     = (startX + i * step) + 'px';
+            card.style.bottom   = yOff + 'px';
+            card.style.transform = `rotate(${ang}deg)`;
+            card.style.zIndex   = i;
+            card.style.fontSize = Math.max(9, cardW * 0.22) + 'px';
+
+            container.appendChild(card);
+        }
+    }
+
+    // ── Poll room info ───────────────────────────────────
+    async function pollRoomInfo() {
+        if (!playerId) return;
+        try {
+            const raw  = await wsSend(`room_info,${playerId}`);
+            const resp = parseResponse(raw);
+            if (resp.status !== 'a' && resp.status !== 'i') return;
+
+            const [roommates, owner, gameStarted, currentCard, playerTurn] = resp.parts;
+            const { players, myCards } = parseRoommates(roommates);
+
+            const gameActive = gameStarted && gameStarted !== 'None' && gameStarted !== 'False';
+
+            // ── Switch to game screen once game starts ──
+            if (gameActive && !inGame) {
+                inGame = true;
+                showScreen('game');
+            }
+
+            if (gameActive) {
+                renderGameScreen(players, currentCard, playerTurn);
+                return;
+            }
+
+            // ── Still in waiting room ──
+            inGame = false;
+
+            // Update roommate list
+            const list = document.getElementById('roommates-list');
+            if (players.length > 0) {
+                list.innerHTML = players.map(p => {
+                    const count     = p.cards.length;
+                    const isFew     = count <= 2 && count > 0;
+                    const badgeCls  = 'card-count' + (isFew ? ' few' : '');
+                    const isOwner   = p.name === owner;
+                    const crown     = isOwner ? '<span class="roommate-crown">♛</span>' : '<span style="width:18px;display:inline-block;"></span>';
+                    const youLabel  = p.isMe ? '<span style="color:var(--muted);font-size:11px;">(you)</span>' : '';
+                    const cardBadge = count > 0
+                        ? `<span class="${badgeCls}">${count} card${count !== 1 ? 's' : ''}</span>`
+                        : '';
+                    return `<div class="roommate-row">${crown}<span>${p.name}</span>${youLabel}${cardBadge}</div>`;
+                }).join('');
+            }
+
+            // Update my hand in waiting room
+            const handSection = document.getElementById('hand-section');
+            const handCards   = document.getElementById('hand-cards');
+            if (myCards.length > 0) {
+                handSection.style.display = 'block';
+                handCards.innerHTML = myCards.map(c => `<span class="hand-card">${c}</span>`).join('');
+            } else {
+                handSection.style.display = 'none';
+                handCards.innerHTML = '';
+            }
+
+            // Admin / start button
+            if (owner && owner !== 'None') {
+                isAdmin = (owner === playerName);
+                document.getElementById('start-btn-container').style.display = isAdmin ? 'block' : 'none';
+            }
+
+        } catch(e) { /* ignore poll errors */ }
+    }
+
+    // ── Keyboard shortcuts ───────────────────────────────
+    document.getElementById('name-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') enterTable();
+    });
+    document.getElementById('join-room-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') joinRoom();
+    });
+</script>
+</body>
+</html>

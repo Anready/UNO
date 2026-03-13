@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+    <link href="/static/css/main_1.0.0.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="bg-cards" id="bgCards"></div>
+
+<!-- ── Entry ── -->
+<div id="screen-ws" class="screen active">
+    <div class="panel">
+        <h1>UNO</h1>
+        <p class="subtitle">— The Table Awaits —</p>
+        <label>Your Name</label>
+        <input type="text" id="name-input" placeholder="Enter your name..." maxlength="24">
+        <button class="btn" onclick="enterTable()">Enter the Table</button>
+    </div>
+</div>
+
+<!-- ── Lobby ── -->
+<div id="screen-lobby" class="screen">
+    <div class="panel">
+        <h1>UNO</h1>
+        <p class="subtitle">— Choose Your Path —</p>
+        <div class="player-badge">
+            Playing as <strong id="lobby-name">—</strong>
+        </div>
+        <button class="btn" onclick="createRoom()">⚔ Create New Room</button>
+        <div class="divider">or</div>
+        <label>Room ID</label>
+        <input type="text" id="join-room-input" placeholder="Enter room ID...">
+        <button class="btn secondary" onclick="joinRoom()">Join Existing Room</button>
+    </div>
+</div>
+
+<!-- ── Room / Waiting ── -->
+<div id="screen-room" class="screen">
+    <div class="panel">
+        <div class="player-badge">
+            <span id="room-player-name">—</span>
+            <span>·</span>
+            <span id="room-id-display" style="color:var(--gold); font-size:12px;">—</span>
+        </div>
+
+        <div class="roommates">
+            <div class="roommates-title">Players in Room</div>
+            <div id="roommates-list">
+                <span style="color:var(--muted); font-style:italic; font-size:14px;">Waiting for players...</span>
+            </div>
+        </div>
+
+        <div id="hand-section">
+            <div class="hand-title">Your Hand</div>
+            <div id="hand-cards"></div>
+        </div>
+
+        <div id="game-info" style="display:none;">
+            <div class="game-status-badge">⚔ Game In Progress</div>
+        </div>
+
+        <div id="start-btn-container" style="display:none; margin-top:8px;">
+            <button class="btn start" onclick="startGame()">⚔ Start Game</button>
+        </div>
+
+        <div style="margin-top:8px;">
+            <button class="btn danger" onclick="leaveRoom()">Leave Room</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     GAME SCREEN
+════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+    <!-- Opponents spread across the top -->
+    <div id="opponents-row"></div>
+
+    <!-- Deck pile (left of table) -->
+    <div id="deck-pile" onclick="takeCard()">
+        <div id="deck-card">
+            <div id="deck-count">?</div>
+            <div id="deck-label">cards</div>
+        </div>
+        <div id="deck-pile-label">Draw</div>
+    </div>
+
+    <!-- Skip Move button (right of table) -->
+    <div id="skip-move-btn" onclick="skipMove()">
+        <div id="skip-card">
+            <div id="skip-icon">⊘</div>
+            <div id="skip-label-inner">pass</div>
+        </div>
+        <div id="skip-pile-label">Skip</div>
+    </div>
+
+    <div id="uno-btn" onclick="uno()">
+        <div id="uno-card">
+            <div id="uno-icon">1</div>
+            <div id="uno-label-inner">UNO</div>
+        </div>
+        <div id="uno-pile-label">UNO</div>
+    </div>
+
+    <!-- Center: felt table with current card -->
+    <div id="table-spacer">
+        <div id="game-table">
+            <div id="current-card-game">—</div>
+            <div id="turn-label">current turn</div>
+            <div id="turn-name">—</div>
+        </div>
+    </div>
+
+    <!-- Player hand at bottom -->
+    <div id="player-area">
+        <div id="player-name-game">—</div>
+        <div id="player-hand-game"></div>
+    </div>
+
+    <div id="color-picker-modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+        <div style="background: var(--surface); padding: 30px; border: 2px solid var(--gold); border-radius: 12px; position: relative; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+            <button id="close-picker" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--gold); font-size: 24px; cursor: pointer;">&times;</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button onclick="selectColor(0)" style="width: 60px; height: 60px; background: #c0392b; border: 2px solid #fff; border-radius: 8px; cursor: pointer; transition: transform 0.2s;"></button>
+                <button onclick="selectColor(1)" style="width: 60px; height: 60px; background: #27ae60; border: 2px solid #fff; border-radius: 8px; cursor: pointer; transition: transform 0.2s;"></button>
+                <button onclick="selectColor(2)" style="width: 60px; height: 60px; background: #2980b9; border: 2px solid #fff; border-radius: 8px; cursor: pointer; transition: transform 0.2s;"></button>
+                <button onclick="selectColor(3)" style="width: 60px; height: 60px; background: #f1c40f; border: 2px solid #fff; border-radius: 8px; cursor: pointer; transition: transform 0.2s;"></button>
+            </div>
+        </div>
+    </div>
+    <div id="win-modal" class="win-overlay" style="display: none;">
+        <div class="win-content">
+            <h1 class="win-header">VICTORY</h1>
+            <div class="win-divider"></div>
+            <p class="win-label">The winner is</p>
+            <div id="winner-name-display" class="winner-highlight"></div>
+            <button class="win-btn" onclick="resetToLobby()">Return to Lobby</button>
+        </div>
+    </div>
+</div>
+
+<!-- Status Bar -->
+<div id="status-bar">
+    <div id="ws-dot"></div>
+    <span id="status-msg">Not connected</span>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="/static/js/cards_1.0.0.js"></script>
+<script src="/static/js/main_1.0.1.js"></script>
+</body>
+</html>
